@@ -428,6 +428,18 @@ export class MenuCategoriaComponent implements OnInit {
 
   subirImagenNuevaCategoria() {
     if (this.nuevaCategoria.titulo && this.nuevaCategoria.imagenFile) {
+      // Verificar si ya existe una clasificacion con el mismo nombre
+      if (
+        this.nuevaCategoria.titulo &&
+        this.existeClasificacionConMismoNombre(this.nuevaCategoria.titulo)
+      ) {
+        this.alertaServicio.MostrarAlerta(
+          'Ya existe una clasificación con el mismo nombre. Por favor, elija otro nombre.'
+        );
+        this.isLoading = false;
+        return;
+      }
+
       this.isLoadingCrear = true;
 
       const formData = new FormData();
@@ -495,7 +507,16 @@ export class MenuCategoriaComponent implements OnInit {
     }
   }
 
+  existeClasificacionConMismoNombre(nombre: string | undefined): boolean {
+    if (!nombre || nombre.trim() === '') return false;
 
+    const nombreNormalizado = nombre.trim().toLowerCase();
+    return this.clasificaciones.some(
+      (clasificacion) =>
+        clasificacion.NombreClasificacionProducto &&
+        clasificacion.NombreClasificacionProducto.trim().toLowerCase() === nombreNormalizado
+    );
+  }
 
   subirImagen(file: File, clasificacion: any): void {
     const formData = new FormData();
