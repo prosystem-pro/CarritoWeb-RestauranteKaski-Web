@@ -231,3 +231,5 @@
 <div *ngIf="error" class="alert alert-danger m-3">
     Error al cargar los datos de la portada. Por favor, intenta nuevamente más tarde.
 </div>
+
+<app-spinner *ngIf="cargandoOverlay | async"></app-spinner>

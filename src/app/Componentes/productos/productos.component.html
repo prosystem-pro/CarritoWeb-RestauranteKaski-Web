@@ -281,4 +281,6 @@
             [style.backgroundColor]="colorClasificacion" [style.color]="colorTextoClasificacion"
             (click)="alternarCarrito()">IR AL CARRITO</button>
     </div>
+
+    <app-spinner *ngIf="cargandoOverlay | async"></app-spinner>
 </div>

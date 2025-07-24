@@ -14,6 +14,9 @@ import { ClasificacionProductoServicio } from '../../Servicios/ClasificacionProd
 import { AlertaServicio } from '../../Servicios/Alerta-Servicio';
 import { PermisoServicio } from '../../Autorizacion/AutorizacionPermiso';
 import { MenuPortadaServicio } from '../../Servicios/MenuPortadaServicio';
+import { LoadingService } from '../../Servicios/LoadingService';
+import { Observable } from 'rxjs';
+import { SpinnerComponent } from '../spinner/spinner.component';
 
 interface ProductoConCantidad extends Producto {
   cantidad?: number;
@@ -28,7 +31,7 @@ interface PrecioTemp {
 
 @Component({
   selector: 'app-productos',
-  imports: [CommonModule, FormsModule, SvgDecoradorComponent, CarritoComponent],
+  imports: [CommonModule, FormsModule, SvgDecoradorComponent, CarritoComponent, SpinnerComponent],
   templateUrl: './productos.component.html',
   styleUrl: './productos.component.css',
 })
@@ -36,6 +39,8 @@ export class ProductosComponent implements OnInit, OnDestroy {
   private Url = `${Entorno.ApiUrl}`;
   private NombreEmpresa = `${Entorno.NombreEmpresa}`;
   private subscription!: Subscription;
+  // Variables para el spinner
+  cargandoOverlay: Observable<boolean>;
 
   // Variables originales
   productos: ProductoConCantidad[] = [];
@@ -101,6 +106,7 @@ export class ProductosComponent implements OnInit, OnDestroy {
     private alertaServicio: AlertaServicio,
     private menuPortadaServicio: MenuPortadaServicio,
     public Permiso: PermisoServicio,
+    private loadingService: LoadingService,
     private http: HttpClient
   ) {
     this.actualizarTotalCarrito();
@@ -108,6 +114,7 @@ export class ProductosComponent implements OnInit, OnDestroy {
     window.addEventListener('storage', () => {
       this.actualizarTotalCarrito();
     });
+    this.cargandoOverlay = this.loadingService.loading$;
   }
 
   ngOnInit(): void {
@@ -421,14 +428,17 @@ export class ProductosComponent implements OnInit, OnDestroy {
     // Actualizar el nombre en el modelo
     producto.NombreProducto = this.nombreTemporal;
 
+    this.loadingService.show(); // Bloquea UI
     // Llamar al servicio para actualizar en la base de datos
     this.productoServicio.Editar(producto).subscribe({
       next: (response) => {
         this.cargarProductos(this.codigoClasificacion);
         this.alertaServicio.MostrarExito('Nombre del producto actualizado correctamente');
         this.editandoNombre = null;
+        this.loadingService.hide();
       },
       error: (error) => {
+        this.loadingService.hide();
         console.error('Error al actualizar nombre', error);
         this.alertaServicio.MostrarError(error, 'Error al actualizar nombre');
         // Restaurar el nombre original en caso de error
@@ -494,6 +504,7 @@ export class ProductosComponent implements OnInit, OnDestroy {
     producto.Moneda = this.precioTemp.moneda;
     producto.Precio = this.precioTemp.valor;
 
+    this.loadingService.show(); // Bloquea UI
     // Llamar al servicio para actualizar en la base de datos
     this.productoServicio.Editar(producto).subscribe({
       next: (response) => {
@@ -501,8 +512,10 @@ export class ProductosComponent implements OnInit, OnDestroy {
         this.cargarProductos(this.codigoClasificacion);
         this.alertaServicio.MostrarExito('Precio del producto actualizado correctamente');
         this.editandoPrecio = null;
+        this.loadingService.hide();
       },
       error: (error) => {
+        this.loadingService.hide();
         this.alertaServicio.MostrarError(error, 'Error al actualizar precio');
         this.cargarProductos(this.codigoClasificacion);
         // Restaurar valores originales
@@ -547,6 +560,7 @@ export class ProductosComponent implements OnInit, OnDestroy {
   }
 
   subirImagenProducto(file: File, producto: ProductoConCantidad): void {
+    this.loadingService.show(); // Bloquea UI
     const formData = new FormData();
     formData.append('Imagen', file);
     formData.append('CarpetaPrincipal', this.NombreEmpresa);
@@ -570,14 +584,17 @@ export class ProductosComponent implements OnInit, OnDestroy {
           producto.UrlImagen = response.Entidad.UrlImagen;
           this.alertaServicio.MostrarExito('Imagen actualizada correctamente');
           this.cargarProductos(this.codigoClasificacion);
+          this.loadingService.hide();
         } else {
           this.alertaServicio.MostrarAlerta('Error al procesar la respuesta del servidor');
 
           // Recargar productos para obtener la imagen actualizada
           this.cargarProductos(this.codigoClasificacion);
+          this.loadingService.hide();
         }
       },
       error: (error) => {
+        this.loadingService.hide();
         if (error?.error?.Alerta) {
           this.alertaServicio.MostrarAlerta(error.error.Alerta, 'Atención');
         } else {
@@ -678,6 +695,7 @@ export class ProductosComponent implements OnInit, OnDestroy {
   subirImagenNuevoProducto(): void {
     if (!this.nuevaImagenFile) return;
 
+    this.loadingService.show(); // Bloquea UI
     this.isLoading = true;
     const formData = new FormData();
     formData.append('Imagen', this.nuevaImagenFile);
@@ -715,20 +733,24 @@ export class ProductosComponent implements OnInit, OnDestroy {
               this.alertaServicio.MostrarExito('Producto creado correctamente');
               this.cargarProductos(this.codigoClasificacion);
               this.cancelarNuevoProducto();
+              this.loadingService.hide();
             },
             error: (editError) => {
               this.isLoading = false;
               this.alertaServicio.MostrarError(editError, 'Error al actualizar datos del producto');
               this.cargarProductos(this.codigoClasificacion);
               this.cancelarNuevoProducto();
+              this.loadingService.hide();
             },
           });
         } else {
+          this.loadingService.hide();
           this.isLoading = false;
           this.alertaServicio.MostrarAlerta('Error al procesar la respuesta del servidor');
         }
       },
       error: (error) => {
+        this.loadingService.hide();
         this.isLoading = false;
         if (error?.error?.Alerta) {
           this.alertaServicio.MostrarAlerta(error.error.Alerta, 'Atención');
@@ -763,6 +785,7 @@ export class ProductosComponent implements OnInit, OnDestroy {
       'Esta acción no se puede deshacer.'
     ).then((confirmado) => {
       if (confirmado) {
+        this.loadingService.show(); // Bloquea UI
         this.productoServicio.Eliminar(producto.CodigoProducto!).subscribe({
           next: (response) => {
             this.alertaServicio.MostrarExito('Producto eliminado correctamente');
@@ -771,8 +794,10 @@ export class ProductosComponent implements OnInit, OnDestroy {
             this.productos = this.productos.filter(
               (p) => p.CodigoProducto !== producto.CodigoProducto
             );
+            this.loadingService.hide();
           },
           error: (error) => {
+            this.loadingService.hide();
             this.alertaServicio.MostrarError(error, 'Error al eliminar el producto');
           },
         });
@@ -855,14 +880,17 @@ export class ProductosComponent implements OnInit, OnDestroy {
 
     delete productoActualizado.UrlImagen;
 
+    this.loadingService.show(); // Bloquea UI
     this.productoServicio.Editar(productoActualizado).subscribe({
       next: () => {
         producto.Estatus = nuevoEstado; // Actualiza el estado local
         this.alertaServicio.MostrarExito(
           `Producto ${nuevoEstado === 1 ? 'activado' : 'desactivado'} correctamente`
         );
+        this.loadingService.hide();
       },
       error: (err) => {
+        this.loadingService.hide();
         this.alertaServicio.MostrarError(err, 'Error al cambiar el estado del producto');
       }
     });

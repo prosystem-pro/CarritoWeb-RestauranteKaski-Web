@@ -13,10 +13,13 @@ import { PermisoServicio } from '../../../Autorizacion/AutorizacionPermiso';
 import { AlertaServicio } from '../../../Servicios/Alerta-Servicio';
 import { ElementRef, ViewChild, AfterViewInit } from '@angular/core';
 import { EmpresaServicio } from '../../../Servicios/EmpresaServicio';
+import { LoadingService } from '../../../Servicios/LoadingService';
+import { Observable } from 'rxjs';
+import { SpinnerComponent } from '../../../Componentes/spinner/spinner.component';
 
 @Component({
   selector: 'app-nosotros',
-  imports: [CommonModule, NgIf, FormsModule, CarruselComponent],
+  imports: [CommonModule, NgIf, FormsModule, CarruselComponent, SpinnerComponent],
   templateUrl: './nosotros.component.html',
   styleUrls: ['./nosotros.component.css'],
   standalone: true,
@@ -30,6 +33,8 @@ export class NosotrosComponent implements OnInit, AfterViewInit {
   sanitizedVideoUrl!: SafeResourceUrl;
   isVideoPlaying = false;
   videoId: string = '';
+    // Variables para el spinner
+  cargandoOverlay: Observable<boolean>;
 
   // Nuevas propiedades para manejo de edición
   portadaData: any = null;
@@ -60,8 +65,11 @@ export class NosotrosComponent implements OnInit, AfterViewInit {
     public Permiso: PermisoServicio,
     private alertaServicio: AlertaServicio,
     private servicioCompartido: ServicioCompartido,
+    private loadingService: LoadingService,
     private EmpresaServicio: EmpresaServicio
-  ) { }
+  ) { 
+    this.cargandoOverlay = this.loadingService.loading$;
+  }
 
   ngOnInit(): void {
     this.obtenerCodigoEmpresa().then(() => {
@@ -410,19 +418,23 @@ export class NosotrosComponent implements OnInit, AfterViewInit {
       delete datosActualizados.UrlImagenMision;
       delete datosActualizados.UrlImagenVision;
 
+      this.loadingService.show(); // Bloquea UI
       this.empresaPortadaServicio.Editar(datosActualizados).subscribe({
         next: (response) => {
           this.alertaServicio.MostrarExito('Cambios guardados correctamente');
           this.modoEdicion = false;
           document.body.classList.remove('modoEdicion');
           this.datosOriginales = null;
+          this.loadingService.hide();
         },
         error: (error) => {
+          this.loadingService.hide();
           console.error('Error al guardar los cambios:', error);
           this.alertaServicio.MostrarError('Error al guardar los cambios. Por favor, intente de nuevo.');
         },
       });
     } else {
+      this.loadingService.hide();
       console.error('No hay datos disponibles para actualizar');
     }
   }
@@ -524,6 +536,7 @@ export class NosotrosComponent implements OnInit, AfterViewInit {
 
   // Nuevo método para ejecutar la subida de imagen
   private ejecutarSubidaImagen(file: File, campoDestino: string): void {
+    this.loadingService.show(); // Bloquea UI
     const formData = new FormData();
     formData.append('Imagen', file);
     formData.append('CarpetaPrincipal', this.NombreEmpresa);
@@ -560,11 +573,14 @@ export class NosotrosComponent implements OnInit, AfterViewInit {
               );
               this.cargarDatosPortada();
               this.modoEdicion = false;
+              this.loadingService.hide();
             },
             error: (error) => {
+              this.loadingService.hide();
               if (error?.error?.Alerta) {
                 this.alertaServicio.MostrarAlerta(error.error.Alerta, 'Atención');
               } else {
+                this.loadingService.hide();
                 this.alertaServicio.MostrarError(
                   'Error al actualizar el campo de imagen. Por favor, intente de nuevo.'
                 );
@@ -574,6 +590,7 @@ export class NosotrosComponent implements OnInit, AfterViewInit {
         }
       },
       error: (error) => {
+        this.loadingService.hide();
         if (error?.error?.Alerta) {
           this.alertaServicio.MostrarAlerta(error.error.Alerta, 'Atención');
         } else {
@@ -598,12 +615,15 @@ export class NosotrosComponent implements OnInit, AfterViewInit {
         Urlvideo: this.portadaData.Urlvideo
       };
 
+      this.loadingService.show(); // Bloquea UI
       this.empresaPortadaServicio.Editar(datosVideo).subscribe({
         next: () => {
           this.alertaServicio.MostrarExito('Video actualizado correctamente');
           this.modoEdicion = false;
+          this.loadingService.hide();
         },
         error: (error) => {
+          this.loadingService.hide();
           console.error('Error al actualizar video:', error);
           this.alertaServicio.MostrarError('Error al actualizar el video. Por favor, intente de nuevo.');
         },

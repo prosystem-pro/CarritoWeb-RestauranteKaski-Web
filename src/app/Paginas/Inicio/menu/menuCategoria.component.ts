@@ -15,10 +15,13 @@ import { ServicioCompartido } from '../../../Servicios/ServicioCompartido';
 import { EmpresaServicio } from '../../../Servicios/EmpresaServicio';
 import { AlertaServicio } from '../../../Servicios/Alerta-Servicio';
 import { PermisoServicio } from '../../../Autorizacion/AutorizacionPermiso';
+import { LoadingService } from '../../../Servicios/LoadingService';
+import { SpinnerComponent } from '../../../Componentes/spinner/spinner.component';
+import { Observable } from 'rxjs';
 
 @Component({
   selector: 'app-menuCategoria',
-  imports: [NgFor, NgIf, FormsModule, CommonModule, CarruselComponent, SvgDecoradorComponent],
+  imports: [NgFor, NgIf, FormsModule, CommonModule, CarruselComponent, SvgDecoradorComponent, SpinnerComponent],
   templateUrl: './menuCategoria.component.html',
   styleUrl: './menuCategoria.component.css',
 })
@@ -26,6 +29,8 @@ export class MenuCategoriaComponent implements OnInit {
   private Url = `${Entorno.ApiUrl}`;
   private NombreEmpresa = `${Entorno.NombreEmpresa}`;
   private textoBusquedaSubscription!: Subscription;
+    // Variables para el spinner
+  cargandoOverlay: Observable<boolean>;
 
   modoEdicion = false;
   mostrarPanelColor = false;
@@ -78,8 +83,11 @@ export class MenuCategoriaComponent implements OnInit {
     private empresaServicio: EmpresaServicio,
     private alertaServicio: AlertaServicio,
     public Permiso: PermisoServicio,
+    private loadingService: LoadingService,
     private http: HttpClient
-  ) { }
+  ) { 
+    this.cargandoOverlay = this.loadingService.loading$;
+  }
 
   ngOnInit(): void {
     this.cargarDataEmpresa();
@@ -372,6 +380,7 @@ export class MenuCategoriaComponent implements OnInit {
   }
 
   subirImagenDecorativo(file: File, campoDestino: string): void {
+    this.loadingService.show(); // Bloquea UI
     const formData = new FormData();
     formData.append('Imagen', file);
     formData.append('CarpetaPrincipal', this.NombreEmpresa);
@@ -405,8 +414,10 @@ export class MenuCategoriaComponent implements OnInit {
               this.alertaServicio.MostrarExito('Imagen actualizada correctamente', 'Éxito');
                   this.cargarMenuPortada();
               this.modoEdicion = false;
+              this.loadingService.hide();
             },
             error: (error) => {
+              this.loadingService.hide();
               if (error?.error?.Alerta) {
                 this.alertaServicio.MostrarAlerta(error.error.Alerta, 'Atención');
               } else {
@@ -417,6 +428,7 @@ export class MenuCategoriaComponent implements OnInit {
         }
       },
       error: (error) => {
+        this.loadingService.hide();
         if (error?.error?.Alerta) {
           this.alertaServicio.MostrarAlerta(error.error.Alerta, 'Atención');
         } else {
@@ -441,7 +453,7 @@ export class MenuCategoriaComponent implements OnInit {
       }
 
       this.isLoadingCrear = true;
-
+      this.loadingService.show(); // Bloquea UI
       const formData = new FormData();
       formData.append('Imagen', this.nuevaCategoria.imagenFile);
       formData.append('CarpetaPrincipal', this.NombreEmpresa);
@@ -476,12 +488,14 @@ export class MenuCategoriaComponent implements OnInit {
             this.clasificacionProductoServicio.Editar(datosActualizados).subscribe({
               next: () => {
                 this.isLoadingCrear = false;
+                this.loadingService.hide();
                 this.alertaServicio.MostrarExito('Nueva categoría creada correctamente', 'Éxito');
                 this.cargarClasificaciones();
                 this.resetNuevaCategoria();
               },
               error: (updateError) => {
                 this.isLoadingCrear = false;
+                this.loadingService.hide();
                 if (updateError?.error?.Alerta) {
                   this.alertaServicio.MostrarAlerta(updateError.error.Alerta, 'Atención');
                 } else {
@@ -492,11 +506,13 @@ export class MenuCategoriaComponent implements OnInit {
             });
           } else {
             this.isLoadingCrear = false;
+            this.loadingService.hide();
             this.alertaServicio.MostrarError('Error al procesar la respuesta del servidor', 'Error');
           }
         },
         error: (error) => {
           this.isLoadingCrear = false;
+          this.loadingService.hide();
           if (error?.error?.Alerta) {
             this.alertaServicio.MostrarAlerta(error.error.Alerta, 'Atención');
           } else {
@@ -519,6 +535,7 @@ export class MenuCategoriaComponent implements OnInit {
   }
 
   subirImagen(file: File, clasificacion: any): void {
+    this.loadingService.show(); // Bloquea UI
     const formData = new FormData();
     formData.append('Imagen', file);
     formData.append('CarpetaPrincipal', this.NombreEmpresa);
@@ -545,8 +562,10 @@ export class MenuCategoriaComponent implements OnInit {
             next: () => {
               this.alertaServicio.MostrarExito('Imagen actualizada correctamente', 'Éxito');
               this.cargarClasificaciones();
+              this.loadingService.hide();
             },
             error: (updateError) => {
+              this.loadingService.hide();
               if (updateError?.error?.Alerta) {
                 this.alertaServicio.MostrarAlerta(updateError.error.Alerta, 'Atención');
               } else {
@@ -555,12 +574,14 @@ export class MenuCategoriaComponent implements OnInit {
             }
           });
         } else {
+          this.loadingService.hide();
           this.alertaServicio.MostrarError('Error al procesar la respuesta del servidor');
           console.warn('No se pudo obtener la URL de la imagen', response);
           this.cargarClasificaciones();
         }
       },
       error: (error) => {
+        this.loadingService.hide();
         console.error('Error al subir la imagen', error);
         if (error?.error?.Alerta) {
           this.alertaServicio.MostrarAlerta(error.error.Alerta, 'Atención');
@@ -574,13 +595,14 @@ export class MenuCategoriaComponent implements OnInit {
   // Actualiza una clasificación en el servidor
   actualizarClasificacion(clasificacion: any): void {
     delete clasificacion.UrlImagen;
+    this.loadingService.show(); // Bloquea UI
     this.clasificacionProductoServicio.Editar(clasificacion).subscribe({
       next: (response) => {
         this.cargarClasificaciones();
-        console.log('Clasificación actualizada');
+        this.loadingService.hide();
       },
       error: (error) => {
-        console.error('Error al actualizar clasificación:', error);
+        this.loadingService.hide();
       },
     });
   }
@@ -591,6 +613,7 @@ export class MenuCategoriaComponent implements OnInit {
       'Esta acción no se puede deshacer.'
     ).then((confirmado) => {
       if (confirmado) {
+        this.loadingService.show(); // Bloquea UI
         this.clasificacionProductoServicio
           .Eliminar(clasificacion.CodigoClasificacionProducto)
           .subscribe({
@@ -604,8 +627,10 @@ export class MenuCategoriaComponent implements OnInit {
               if (index !== -1) {
                 this.clasificaciones.splice(index, 1);
               }
+              this.loadingService.hide();
             },
             error: (error) => {
+              this.loadingService.hide();
               this.alertaServicio.MostrarError('Error al eliminar la categoría');
             },
           });
@@ -633,15 +658,19 @@ export class MenuCategoriaComponent implements OnInit {
         ...datosActualizados
       } = this.menuPortada;
 
+     
       if (this.menuPortada.CodigoMenuPortada === 0) {
         this.menuPortadaServicio.Crear(datosActualizados).subscribe({
           next: (response) => {
+            //  this.loadingService.show(); // Bloquea UI
             console.log('MenuPortada creado correctamente', response);
             if (response && response.Entidad) {
               this.menuPortada.CodigoMenuPortada = response.Entidad.CodigoMenuPortada;
             }
+            // this.loadingService.hide();
           },
           error: (error) => {
+            // this.loadingService.hide();
             console.error('Error al crear MenuPortada', error);
             this.crearEditarMenuPortada();
           },
@@ -649,9 +678,12 @@ export class MenuCategoriaComponent implements OnInit {
       } else {
         this.menuPortadaServicio.Editar(datosActualizados).subscribe({
           next: (response) => {
+            //  this.loadingService.show(); // Bloquea UI
             console.log('MenuPortada actualizado correctamente', response);
+            // this.loadingService.hide();
           },
           error: (error) => {
+            // this.loadingService.hide();
             console.error('Error al actualizar MenuPortada', error);
             this.crearEditarMenuPortada();
           },
@@ -671,14 +703,17 @@ export class MenuCategoriaComponent implements OnInit {
         ...datosActualizados
       } = this.menuPortada;
 
+      this.loadingService.show(); // Bloquea UI
       this.menuPortadaServicio.CrearEditar(datosActualizados).subscribe({
         next: (response) => {
           console.log('MenuPortada creado/actualizado correctamente', response);
           if (response && response.Entidad) {
             this.menuPortada.CodigoMenuPortada = response.Entidad.CodigoMenuPortada;
           }
+          this.loadingService.hide();
         },
         error: (error) => {
+          this.loadingService.hide();
           console.error('Error al crear/actualizar MenuPortada', error);
           this.alertaServicio.MostrarError('Error al actualizar la configuración de la portada');
         },

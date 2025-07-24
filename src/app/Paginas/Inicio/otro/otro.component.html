@@ -106,9 +106,9 @@
         class="position-absolute d-flex align-items-center justify-content-center EditarEliminar" style="top: 10px; right: 10px; background-color: rgba(255, 255, 255, 0.9); border-radius: 50%; cursor: pointer;
              box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.3);">
         <i class="bi bi-camera text-dark fs-5"
-         (click)=" UrlImagenTemporal = ''; UrlImagenTemporal2=''; CodigoTemporal=''"></i>
-        
-        <input type="file" (change)="ActualizarImagenOtro($event, i, null)" accept="image/*" hidden >
+          (click)=" UrlImagenTemporal = ''; UrlImagenTemporal2=''; CodigoTemporal=''"></i>
+
+        <input type="file" (change)="ActualizarImagenOtro($event, i, null)" accept="image/*" hidden>
       </label>
     </div>
 
@@ -129,7 +129,7 @@
         class="position-absolute d-flex align-items-center justify-content-center EditarEliminar" style="top: 10px; right: 10px; background-color: rgba(255, 255, 255, 0.9); border-radius: 50%; cursor: pointer;
              box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.3);">
         <i class="bi bi-camera text-dark fs-5"
-         (click)=" UrlImagenTemporal = ''; UrlImagenTemporal2=''; CodigoTemporal=''"></i>
+          (click)=" UrlImagenTemporal = ''; UrlImagenTemporal2=''; CodigoTemporal=''"></i>
         <input type="file" (change)="ActualizarImagen2Otro($event, i, null)" accept="image/*" hidden>
       </label>
     </div>
@@ -274,3 +274,5 @@
 <div *ngIf="!PortadaOtro">
   <p>Cargando datos...</p>
 </div>
+
+<app-spinner *ngIf="cargandoOverlay | async"></app-spinner>

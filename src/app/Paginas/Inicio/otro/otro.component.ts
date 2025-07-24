@@ -14,11 +14,13 @@ import { OtroServicio } from '../../../Servicios/OtroServicio';
 import { PermisoServicio } from '../../../Autorizacion/AutorizacionPermiso';
 import { Entorno } from '../../../Entornos/Entorno';
 import { AlertaServicio } from '../../../Servicios/Alerta-Servicio';
-
+import { LoadingService } from '../../../Servicios/LoadingService';
+import { SpinnerComponent } from '../../../Componentes/spinner/spinner.component';
+import { Observable } from 'rxjs';
 
 @Component({
   selector: 'app-otro',
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, SpinnerComponent],
   templateUrl: './otro.component.html',
   styleUrl: './otro.component.css'
 })
@@ -33,6 +35,8 @@ export class OtroComponent {
   UrlImagenTemporal: string | ArrayBuffer | null = null;
   UrlImagenTemporal2: string | ArrayBuffer | null = null;
   CodigoTemporal: string | ArrayBuffer | null = null;
+    // Variables para el spinner
+  cargandoOverlay: Observable<boolean>;
 
 
   constructor(
@@ -42,8 +46,11 @@ export class OtroComponent {
     public Permiso: PermisoServicio,
     private http: HttpClient,
     private sanitizer: DomSanitizer,
+    private loadingService: LoadingService,
     private AlertaServicio: AlertaServicio
-  ) { }
+  ) { 
+    this.cargandoOverlay = this.loadingService.loading$;
+  }
 
   ngOnInit(): void {
     this.ObtenerPortadaOtro();
@@ -111,14 +118,17 @@ export class OtroComponent {
       });
       return;
     }
-
+    
+    this.loadingService.show(); // Bloquea UI
     this.PortadaOtroServicio.Editar(this.PortadaOtro).subscribe({
       next: () => {
         this.AlertaServicio.MostrarExito('El registro se actualizó correctamente.');
         this.MostrarPortadaOtro = false;
         this.ObtenerPortadaOtro();
+        this.loadingService.hide();
       },
       error: (error) => {
+        this.loadingService.hide();
         this.AlertaServicio.MostrarError(error, 'No se pudo actualizar el registro.');
       }
     });
@@ -190,14 +200,17 @@ export class OtroComponent {
     delete item.UrlImagen;
     delete item.UrlImagen2
 
+    this.loadingService.show(); // Bloquea UI
     if (index !== null || (this.CodigoTemporal && this.CodigoTemporal !== '')) {
       this.OtroServicio.Editar(item).subscribe({
         next: () => {
           this.MostrarAgregarOtro = false;
           this.ObtenerOtro();
           this.AlertaServicio.MostrarExito('Los datos se actualizaron correctamente.');
+          this.loadingService.hide();
         },
         error: () => {
+          this.loadingService.hide();
           this.AlertaServicio.MostrarError('No se pudieron guardar los datos.');
         }
       });
@@ -209,8 +222,10 @@ export class OtroComponent {
           this.MostrarAgregarOtro = false;
           this.ObtenerOtro();
           this.AlertaServicio.MostrarExito('El registro se creó correctamente.');
+          this.loadingService.hide();
         },
         error: () => {
+          this.loadingService.hide();
           this.AlertaServicio.MostrarError('No se pudieron guardar los datos.');
         }
       });
@@ -261,6 +276,7 @@ export class OtroComponent {
         const CodigoOtro = index != null ? String(this.Otro[index]?.CodigoOtro ?? '') : '';
         const CodigoPropio = String(this.CodigoTemporal || CodigoOtro || '');
 
+        this.loadingService.show(); // Bloquea UI
         formData.append('Imagen', file);
         formData.append('CarpetaPrincipal', nombreEmpresa);
         formData.append('SubCarpeta', 'Otro');
@@ -276,6 +292,7 @@ export class OtroComponent {
               return;
             }
             this.AlertaServicio.MostrarAlerta('El registro se actualizó correctamente.');
+            this.loadingService.hide();
 
           if (permiso) {
             this.UrlImagenTemporal = res?.Entidad?.UrlImagen || this.UrlImagenTemporal;
@@ -288,6 +305,7 @@ export class OtroComponent {
             }
           },
           error: (err) => {
+            this.loadingService.hide();
             console.error('Error al subir la imagen:', err);
             if (err?.error?.Alerta) {
               this.AlertaServicio.MostrarAlerta(err.error.Alerta, 'Atención');
@@ -298,6 +316,7 @@ export class OtroComponent {
         });
       },
       error: (err) => {
+        this.loadingService.hide();
         console.error('Error al obtener empresa:', err);
         if (err?.error?.Alerta) {
           this.AlertaServicio.MostrarAlerta(err.error.Alerta, 'Atención');
@@ -320,13 +339,16 @@ export class OtroComponent {
       'Sí, eliminar',
       'Cancelar'
     ).then(confirmado => {
+      this.loadingService.show(); // Bloquea UI
       if (confirmado) {
         this.OtroServicio.Eliminar(codigo).subscribe({
           next: () => {
             this.Otro.splice(index, 1);
             this.AlertaServicio.MostrarExito('Registro eliminado correctamente.');
+            this.loadingService.hide();
           },
           error: (err) => {
+            this.loadingService.hide();
             this.AlertaServicio.MostrarError(err, 'Error al eliminar');
           }
         });

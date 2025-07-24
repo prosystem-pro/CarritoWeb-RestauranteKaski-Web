@@ -6,10 +6,9 @@
     'background-repeat': 'no-repeat',
   }">
 
-  
+
   <!-- Subir imagen fondo de página -->
-  <div class="container position-relative" style="position: relative; top: 20px;"
-    *ngIf="Permiso.PermisoSuperAdmin()">
+  <div class="container position-relative" style="position: relative; top: 20px;" *ngIf="Permiso.PermisoSuperAdmin()">
     <label class="rounded-circle d-flex align-items-center justify-content-center" style="width: 45px; height: 45px; cursor: pointer;
          background-color: #ffffff;
          box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.3);
@@ -68,7 +67,7 @@
             <div class="d-flex flex-column flex-md-row align-items-center justify-content-center gap-3">
 
               <!-- Título en modo vista -->
-              <div *ngIf="!MostrarTitulo" class="fw-bold fs-2 text-center" 
+              <div *ngIf="!MostrarTitulo" class="fw-bold fs-2 text-center"
                 [style.color]="ContactanosPortada.ColorNombreContactanosPortada">
                 {{ ContactanosPortada.NombreContactanosPortada }}
               </div>
@@ -304,19 +303,16 @@
 
 
 <div class="container p-0 py-2 position-relative  ">
-<div *ngIf="ContactanosPortada"
-  class="  MedidaImagenHorario"
-  [ngStyle]="{
+  <div *ngIf="ContactanosPortada" class="  MedidaImagenHorario" [ngStyle]="{
     'background-image': 'url(' + ContactanosPortada.UrlImagenHorario + ')',
     'background-position': 'center',
     'background-repeat': 'no-repeat',
   }">
-</div>
+  </div>
 
 
 
-  <label *ngIf="Permiso.PermisoSuperAdmin()"
-    class="rounded-circle d-flex align-items-center justify-content-center"
+  <label *ngIf="Permiso.PermisoSuperAdmin()" class="rounded-circle d-flex align-items-center justify-content-center"
     style="
       width: 45px;
       height: 45px;
@@ -369,7 +365,7 @@
       <input type="color" class="form-control form-control-sm mb-2"
         [(ngModel)]="ContactanosPortada.ColorBotonComoLlegar">
       <label class="form-label fw-semibold small">URL al hacer clic</label>
-      <input type="text" class="form-control form-control-sm shadow-sm" 
+      <input type="text" class="form-control form-control-sm shadow-sm"
         [(ngModel)]="ContactanosPortada.UrlMapaComoLlegar">
     </div>
 
@@ -406,4 +402,5 @@
     </div>
 
   </div>
+  <app-spinner *ngIf="cargandoOverlay | async"></app-spinner>
 </div>

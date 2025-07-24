@@ -7,6 +7,9 @@ import { PermisoServicio } from '../../Autorizacion/AutorizacionPermiso';
 import { AlertaServicio } from '../../Servicios/Alerta-Servicio';
 import { Entorno } from '../../Entornos/Entorno';
 import { ReporteRedSocialServicio } from '../../Servicios/ReporteRedSocialServicio';
+import { LoadingService } from '../../Servicios/LoadingService';
+import { Observable } from 'rxjs';
+import { SpinnerComponent } from '../spinner/spinner.component';
 
 @Component({
   selector: 'app-sidebar-red-social',
@@ -18,6 +21,8 @@ export class SidebarRedSocialComponent implements OnInit {
   private Url = `${Entorno.ApiUrl}`;
   private NombreEmpresa = `${Entorno.NombreEmpresa}`;
   RedeSocial: any = [];
+    // Variables para el spinner
+  cargandoOverlay: Observable<boolean>;
 
   constructor(
     private redSocialImagenServicio: RedSocialImagenServicio,
@@ -25,8 +30,11 @@ export class SidebarRedSocialComponent implements OnInit {
     public Permiso: PermisoServicio,
     private http: HttpClient,
     private AlertaServicio: AlertaServicio,
+    private loadingService: LoadingService,
     private ReporteRedSocialServicio: ReporteRedSocialServicio
-  ) {}
+  ) {
+    this.cargandoOverlay = this.loadingService.loading$;
+  }
 
   ngOnInit(): void {
     this.cargarRedesSociales();
@@ -123,6 +131,7 @@ export class SidebarRedSocialComponent implements OnInit {
     codigoRedSocial: number,
     redSocial: any
   ): void {
+    this.loadingService.show(); // Bloquea UI
     const formData = new FormData();
     formData.append('Imagen', file);
     formData.append('CarpetaPrincipal', this.NombreEmpresa);
@@ -173,11 +182,14 @@ export class SidebarRedSocialComponent implements OnInit {
             redSocial
           );
         } else {
+          this.loadingService.hide();
           this.AlertaServicio.MostrarError('Error al obtener la URL de la imagen');
         }
       }
+      this.loadingService.hide();
     },
     error: (error) => {
+      this.loadingService.hide();
       if (error?.error?.Alerta) {
         this.AlertaServicio.MostrarAlerta(error.error.Alerta, 'Atención');
       } else {

@@ -8,10 +8,13 @@ import { LoginPortadaServicio } from '../../../Servicios/LoginPortada';
 import { PermisoServicio } from '../../../Autorizacion/AutorizacionPermiso';
 import { Entorno } from '../../../Entornos/Entorno';
 import { AlertaServicio } from '../../../Servicios/Alerta-Servicio';
+import { LoadingService } from '../../../Servicios/LoadingService';
+import { SpinnerComponent } from '../../../Componentes/spinner/spinner.component';
+import { Observable } from 'rxjs';
 
 @Component({
   selector: 'app-login',
-  imports: [FormsModule, CommonModule],
+  imports: [FormsModule, CommonModule, SpinnerComponent],
   templateUrl: './login.component.html',
   styleUrl: './login.component.css',
 })
@@ -25,6 +28,8 @@ export class LoginComponent implements OnInit {
   isLoading: boolean = false;
   modoEdicion = false;
   datosOriginales: any = null;
+    // Variables para el spinner
+  cargandoOverlay: Observable<boolean>;
 
   // Propiedad para almacenar la portada de login
   portadaLogin: any = null;
@@ -35,8 +40,11 @@ export class LoginComponent implements OnInit {
     private loginPortadaServicio: LoginPortadaServicio,
     public Permiso: PermisoServicio,
     private http: HttpClient,
+    private loadingService: LoadingService,
     private alertaServicio: AlertaServicio
-  ) {}
+  ) {
+    this.cargandoOverlay = this.loadingService.loading$;
+  }
 
   ngOnInit(): void {
     this.obtenerPortadaLogin();
@@ -128,14 +136,17 @@ export class LoginComponent implements OnInit {
       delete datosActualizados.UrlImagenDecorativaIzquierda;
       delete datosActualizados.UrlImagenDecorativaDerecha;
 
+      this.loadingService.show(); // Bloquea UI
       this.loginPortadaServicio.Editar(datosActualizados).subscribe({
         next: (response) => {
           this.alertaServicio.MostrarExito('Cambios guardados correctamente');
           this.modoEdicion = false;
           document.body.classList.remove('modoEdicion');
           this.datosOriginales = null;
+          this.loadingService.hide();
         },
         error: (error) => {
+          this.loadingService.hide();
           this.alertaServicio.MostrarError(
             error,
             'Error al guardar los cambios. Por favor, intente de nuevo.'
@@ -143,6 +154,7 @@ export class LoginComponent implements OnInit {
         },
       });
     } else {
+      this.loadingService.hide();
       console.error('No hay datos disponibles para actualizar');
     }
   }
@@ -216,6 +228,7 @@ export class LoginComponent implements OnInit {
 
   // Método general para subir imágenes
   subirImagen(file: File, campoDestino: string): void {
+    this.loadingService.show(); // Bloquea UI
     const formData = new FormData();
     formData.append('Imagen', file);
     formData.append('CarpetaPrincipal', this.NombreEmpresa);
@@ -243,14 +256,17 @@ export class LoginComponent implements OnInit {
               );
               this.obtenerPortadaLogin();
               this.modoEdicion = false;
+              this.loadingService.hide();
             },
             error: (updateError) => {
+              this.loadingService.hide();
               this.alertaServicio.MostrarError('Error al actualizar la imagen');
             },
           });
         }
       },
       error: (error) => {
+        this.loadingService.hide();
         this.alertaServicio.MostrarError(
           error,
           'Error al subir la imagen. Por favor, intente de nuevo.'

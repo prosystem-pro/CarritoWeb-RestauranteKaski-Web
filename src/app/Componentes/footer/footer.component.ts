@@ -11,6 +11,9 @@ import { PermisoServicio } from '../../Autorizacion/AutorizacionPermiso';
 import { ReporteRedSocialServicio } from '../../Servicios/ReporteRedSocialServicio';
 import { RedSocialImagenServicio } from '../../Servicios/RedSocialImagenServicio';
 import { EmpresaServicio } from '../../Servicios/EmpresaServicio';
+import { LoadingService } from '../../Servicios/LoadingService';
+import { Observable } from 'rxjs';
+import { SpinnerComponent } from '../spinner/spinner.component';
 
 @Component({
   selector: 'app-footer',
@@ -29,6 +32,8 @@ export class FooterComponent implements OnInit {
   datosOriginales: any = null;
   RedSocial: any = [];
   codigoEmpresa: number | null = null;
+    // Variables para el spinner
+  cargandoOverlay: Observable<boolean>;
 
   constructor(
     private footerServicio: FooterServicio,
@@ -39,8 +44,11 @@ export class FooterComponent implements OnInit {
     private alertaServicio: AlertaServicio,
     private redSocialImagenServicio: RedSocialImagenServicio,
     private ReporteRedSocialServicio: ReporteRedSocialServicio,
+    private loadingService: LoadingService,
     private EmpresaServicio: EmpresaServicio
-  ) { }
+  ) { 
+    this.cargandoOverlay = this.loadingService.loading$;
+  }
 
   ngOnInit(): void {
     this.obtenerCodigoEmpresa().then(() => {
@@ -217,19 +225,23 @@ export class FooterComponent implements OnInit {
       // EXCLUIR la URL del logo para evitar problemas en el backend
       delete datosActualizados.UrlLogo;
 
+      this.loadingService.show(); // Bloquea UI
       this.footerServicio.Editar(datosActualizados).subscribe({
         next: (response) => {
           this.alertaServicio.MostrarExito('Cambios guardados correctamente');
           this.modoEdicion = false;
           document.body.classList.remove('modoEdicion');
           this.datosOriginales = null;
+          this.loadingService.hide();
         },
         error: (error) => {
+          this.loadingService.hide();
           console.error('Error al guardar los cambios:', error);
           this.alertaServicio.MostrarError('Error al guardar los cambios');
         }
       });
     } else {
+      this.loadingService.hide();
       this.alertaServicio.MostrarAlerta('No hay datos disponibles para actualizar');
     }
   }
@@ -278,7 +290,8 @@ export class FooterComponent implements OnInit {
 
   // Nuevo método para ejecutar la subida de imagen
   private ejecutarSubidaImagen(file: File, campoDestino: string): void {
-        const formData = new FormData();
+    this.loadingService.show(); // Bloquea UI
+    const formData = new FormData();
     formData.append('Imagen', file);
     formData.append('CarpetaPrincipal', this.NombreEmpresa);
     formData.append('SubCarpeta', 'Footer');
@@ -306,24 +319,30 @@ export class FooterComponent implements OnInit {
                 this.alertaServicio.MostrarExito('Imagen actualizada correctamente');
                 this.cargarDatosFooter();
                 this.modoEdicion = false;
+                this.loadingService.hide();
               },
               error: () => {
+                this.loadingService.hide();
                 this.alertaServicio.MostrarError('Error al actualizar la imagen');
               }
             });
           } else {
+            this.loadingService.hide();
             const imageUrl = response.UrlImagenPortada ||
               response.url ||
               (response.Entidad ? response.Entidad.UrlImagenPortada : null);
 
             if (imageUrl) {
+              this.loadingService.hide();
               this.footerData[campoDestino] = imageUrl;
             } else {
+              this.loadingService.hide();
               this.alertaServicio.MostrarError('Error al obtener la URL de la imagen');
             }
           }
         },
         error: (error) => {
+          this.loadingService.hide();
           if (error?.error?.Alerta) {
             this.alertaServicio.MostrarAlerta(error.error.Alerta, 'Atención');
           } else {
@@ -374,6 +393,7 @@ export class FooterComponent implements OnInit {
 }
 
 subirImagenRedSocial(file: File, codigoRedSocial: number, redSocial: any): void {
+  this.loadingService.show(); // Bloquea UI
   const formData = new FormData();
   formData.append('Imagen', file);
   formData.append('CarpetaPrincipal', this.NombreEmpresa);
@@ -407,6 +427,7 @@ subirImagenRedSocial(file: File, codigoRedSocial: number, redSocial: any): void 
         if (response && response.Entidad && response.Entidad.UrlImagen) {
           // Procesar la respuesta según si se creó o actualizó
           this.procesarRespuestaImagen(codigoRedSocial, response, redSocial);
+          this.loadingService.hide();
         } else {
           // Manejar respuesta alternativa
           const imageUrl = response.UrlImagenPortada || 
@@ -415,12 +436,15 @@ subirImagenRedSocial(file: File, codigoRedSocial: number, redSocial: any): void 
 
           if (imageUrl) {
             this.procesarRespuestaImagen(codigoRedSocial, { Entidad: { UrlImagen: imageUrl } }, redSocial);
+            this.loadingService.hide();
           } else {
+            this.loadingService.hide();
             this.alertaServicio.MostrarError('Error al obtener la URL de la imagen');
           }
         }
       },
       error: (error) => {
+        this.loadingService.hide();
         if (error?.error?.Alerta) {
           this.alertaServicio.MostrarAlerta(error.error.Alerta, 'Atención');
         } else {

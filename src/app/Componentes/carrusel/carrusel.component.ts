@@ -9,6 +9,8 @@ import { Carrusel } from '../../Modelos/Carrusel';
 import { CarruselServicio } from '../../Servicios/CarruselServicio';
 import { AlertaServicio } from '../../Servicios/Alerta-Servicio';
 import { PermisoServicio } from '../../Autorizacion/AutorizacionPermiso';
+import { LoadingService } from '../../Servicios/LoadingService';
+import { Observable } from 'rxjs';
 
 interface CarruselItem {
   CodigoCarruselImagen: number;
@@ -52,6 +54,9 @@ export class CarruselComponent implements OnInit, AfterViewInit, OnDestroy {
   @Input() autoplayInterval: number = 2000;
 
   @ViewChild('carouselContainer') carouselContainer!: ElementRef<HTMLElement>;
+
+    // Variables para el spinner
+  cargandoOverlay: Observable<boolean>;
 
   currentIndex = 0;
   totalItems = 0;
@@ -98,10 +103,12 @@ export class CarruselComponent implements OnInit, AfterViewInit, OnDestroy {
     private cdr: ChangeDetectorRef,
     private carruselServicio: CarruselServicio,
     public Permiso: PermisoServicio,
+    private loadingService: LoadingService,
     private alertaServicio: AlertaServicio
   ) {
     // Detectar iOS al inicializar el componente
     this.isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+    this.cargandoOverlay = this.loadingService.loading$;
   }
 
   ngOnInit(): void {
@@ -530,6 +537,8 @@ export class CarruselComponent implements OnInit, AfterViewInit, OnDestroy {
 
     this.cargandoImagen = true;
 
+    this.loadingService.show(); // Bloquea UI
+
     const formData = new FormData();
     formData.append('Imagen', this.nuevaImagen.imagen);
     formData.append('CarpetaPrincipal', this.NombreEmpresa);
@@ -553,6 +562,7 @@ export class CarruselComponent implements OnInit, AfterViewInit, OnDestroy {
           this.alertaServicio.MostrarExito('Imagen subida correctamente');
           this.cargarDatosCarrusel();
           this.cargandoImagen = false;
+          this.loadingService.hide();
 
           const nuevaImagenCarrusel: CarruselItem = {
             UrlImagen: response.Entidad?.UrlImagen || response.url,
@@ -569,6 +579,7 @@ export class CarruselComponent implements OnInit, AfterViewInit, OnDestroy {
           }, 100);
         },
         error: (error) => {
+          this.loadingService.hide();
           this.cargandoImagen = false;
 
           if (error?.error?.Alerta) {
@@ -649,6 +660,8 @@ export class CarruselComponent implements OnInit, AfterViewInit, OnDestroy {
 
     this.cargandoImagen = true;
 
+    this.loadingService.show(); // Bloquea UI
+
     const formData = new FormData();
     formData.append('Imagen', this.imagenEdicion.imagen);
     formData.append('CarpetaPrincipal', this.NombreEmpresa);
@@ -672,6 +685,7 @@ export class CarruselComponent implements OnInit, AfterViewInit, OnDestroy {
           this.alertaServicio.MostrarExito('Imagen actualizada correctamente');
           this.cargarDatosCarrusel();
           this.cargandoImagen = false;
+          this.loadingService.hide();
 
           if (this.itemEnEdicion) {
             const index = this.items.findIndex((item: CarruselItem) =>
@@ -688,6 +702,7 @@ export class CarruselComponent implements OnInit, AfterViewInit, OnDestroy {
           this.cdr.detectChanges();
         },
         error: (error) => {
+          this.loadingService.hide();
           this.cargandoImagen = false;
 
           if (error?.error?.Alerta) {
@@ -710,6 +725,7 @@ export class CarruselComponent implements OnInit, AfterViewInit, OnDestroy {
       'Esta acción no se puede deshacer.'
     ).then((confirmado) => {
       if (confirmado) {
+        this.loadingService.show(); // Bloquea UI
         const codigoCarruselImagen = item.CodigoCarruselImagen;
 
         const subscription = this.carruselImagenServicio.Eliminar(codigoCarruselImagen).subscribe({
@@ -726,8 +742,10 @@ export class CarruselComponent implements OnInit, AfterViewInit, OnDestroy {
               this.setupCarousel();
               this.cdr.detectChanges();
             }, 100);
+            this.loadingService.hide();
           },
           error: (error) => {
+            this.loadingService.hide();
             this.alertaServicio.MostrarError(error, 'Error al eliminar la imagen');
           }
         });
@@ -755,14 +773,17 @@ export class CarruselComponent implements OnInit, AfterViewInit, OnDestroy {
 
     this.carruselActual.NombreCarrusel = this.tituloTemporal;
 
+    this.loadingService.show(); // Bloquea UI
     this.carruselServicio.Editar(this.carruselActual)
       .subscribe({
         next: (response) => {
           this.title = this.tituloTemporal;
           this.editandoTitulo = false;
           this.alertaServicio.MostrarExito('Título actualizado correctamente');
+          this.loadingService.hide();
         },
         error: (error) => {
+          this.loadingService.hide();
           this.alertaServicio.MostrarError('Error al actualizar el título');
         }
       });

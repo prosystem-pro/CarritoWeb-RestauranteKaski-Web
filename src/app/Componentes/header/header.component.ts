@@ -16,10 +16,13 @@ import { RedSocialImagenServicio } from '../../Servicios/RedSocialImagenServicio
 import { CarritoEstadoService } from '../../Servicios/CarritoEstadoServicio';
 import { EmpresaServicio } from '../../Servicios/EmpresaServicio'; // Importar el servicio
 import { MenuPortadaServicio } from '../../Servicios/MenuPortadaServicio';
+import { LoadingService } from '../../Servicios/LoadingService';
+import { Observable } from 'rxjs';
+import { SpinnerComponent } from '../spinner/spinner.component';
 
 @Component({
   selector: 'app-header',
-  imports: [NgStyle, CommonModule, FormsModule, NgIf, CarritoComponent],
+  imports: [NgStyle, CommonModule, FormsModule, NgIf, CarritoComponent, SpinnerComponent],
   templateUrl: './header.component.html',
   styleUrl: './header.component.css',
   standalone: true,
@@ -28,6 +31,8 @@ export class HeaderComponent implements OnInit, OnDestroy {
   private Url = `${Entorno.ApiUrl}`;
   private NombreEmpresa = `${Entorno.NombreEmpresa}`;
   private subscription!: Subscription;
+    // Variables para el spinner
+  cargandoOverlay: Observable<boolean>;
   primaryColor: string = '';
   Datos: any = null;
   modoEdicion: boolean = false;
@@ -58,8 +63,11 @@ export class HeaderComponent implements OnInit, OnDestroy {
     private carritoEstadoService: CarritoEstadoService,
     private ReporteRedSocialServicio: ReporteRedSocialServicio,
     private menuPortadaServicio: MenuPortadaServicio,
+    private loadingService: LoadingService,
     private EmpresaServicio: EmpresaServicio // Inyectar el servicio
-  ) { }
+  ) { 
+    this.cargandoOverlay = this.loadingService.loading$;
+  }
 
   ngOnInit(): void {
     this.obtenerCodigoEmpresa().then(() => {
@@ -216,6 +224,7 @@ export class HeaderComponent implements OnInit, OnDestroy {
 
   // Nuevo método para ejecutar la subida de imagen
   private ejecutarSubidaImagen(file: File, campoDestino: string): void {
+    this.loadingService.show(); // Bloquea UI
     const formData = new FormData();
     formData.append('Imagen', file);
     formData.append('CarpetaPrincipal', this.NombreEmpresa);
@@ -252,8 +261,10 @@ export class HeaderComponent implements OnInit, OnDestroy {
             this.AlertaServicio.MostrarExito('Imagen actualizada correctamente');
             this.Listado();
             this.modoEdicion = false;
+            this.loadingService.hide();
           },
           error: (error) => {
+            this.loadingService.hide();
             if (error?.error?.Alerta) {
               this.AlertaServicio.MostrarAlerta(error.error.Alerta, 'Atención');
             } else {
@@ -263,6 +274,7 @@ export class HeaderComponent implements OnInit, OnDestroy {
         });
 
       } else {
+        this.loadingService.hide();
         const imageUrl =
           response.UrlImagenPortada ||
           response.url ||
@@ -277,6 +289,7 @@ export class HeaderComponent implements OnInit, OnDestroy {
       }
     },
     error: (error) => {
+      this.loadingService.hide();
       if (error?.error?.Alerta) {
         this.AlertaServicio.MostrarAlerta(error.error.Alerta, 'Atención');
       } else {
@@ -376,6 +389,7 @@ export class HeaderComponent implements OnInit, OnDestroy {
   }
 
   subirImagenRedSocial(file: File, codigoRedSocial: number, redSocial: any): void {
+    this.loadingService.show(); // Bloquea UI
     const formData = new FormData();
     formData.append('Imagen', file);
     formData.append('CarpetaPrincipal', this.NombreEmpresa);
@@ -405,6 +419,7 @@ export class HeaderComponent implements OnInit, OnDestroy {
 
           if (response && response.Entidad && response.Entidad.UrlImagen) {
             this.procesarRespuestaImagen(codigoRedSocial, response, redSocial);
+            this.loadingService.hide(); // Desbloquea UI
           } else {
             const imageUrl = response.UrlImagenPortada ||
               response.url ||
@@ -413,11 +428,13 @@ export class HeaderComponent implements OnInit, OnDestroy {
             if (imageUrl) {
               this.procesarRespuestaImagen(codigoRedSocial, { Entidad: { UrlImagen: imageUrl } }, redSocial);
             } else {
+              this.loadingService.hide(); // Desbloquea UI
               this.AlertaServicio.MostrarError('Error al obtener la URL de la imagen');
             }
           }
         },
         error: (error) => {
+          this.loadingService.hide(); // Desbloquea UI
           if (error?.error?.Alerta) {
             this.AlertaServicio.MostrarAlerta(error.error.Alerta, 'Atención');
           } else {
@@ -548,19 +565,23 @@ export class HeaderComponent implements OnInit, OnDestroy {
       datosActualizados.ColorTextoContacto = datosActualizados.ColorTextoInicio;
       datosActualizados.ColorTextextoReporte = datosActualizados.ColorTextoInicio;
 
+      this.loadingService.show(); // Bloquea UI
       this.Servicio.Editar(datosActualizados).subscribe({
         next: (response) => {
           this.AlertaServicio.MostrarExito('Cambios guardados correctamente');
           this.modoEdicion = false;
           document.body.classList.remove('modoEdicion');
           this.datosOriginales = null;
+          this.loadingService.hide();
         },
         error: (error) => {
+          this.loadingService.hide();
           console.error('Error al guardar los cambios', error);
           this.AlertaServicio.MostrarAlerta('Error al guardar los cambios. Por favor, intente de nuevo.');
         },
       });
     } else {
+      this.loadingService.hide();
       console.error('No hay datos disponibles para actualizar');
     }
   }

@@ -16,10 +16,13 @@ import { RedSocialImagenServicio } from '../../../Servicios/RedSocialImagenServi
 import { EmpresaServicio } from '../../../Servicios/EmpresaServicio';
 import { ContactanosPortadaServicio } from '../../../Servicios/ContactanosPortadaServicio';
 import { AlertaServicio } from '../../../Servicios/Alerta-Servicio';
+import { LoadingService } from '../../../Servicios/LoadingService';
+import { Observable } from 'rxjs';
+import { SpinnerComponent } from '../../../Componentes/spinner/spinner.component';
 
 @Component({
   selector: 'app-contacto',
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, SpinnerComponent],
   templateUrl: './contacto.component.html',
   styleUrls: ['./contacto.component.css']
 })
@@ -32,7 +35,8 @@ export class ContactoComponent implements OnInit {
   MapaSeguro!: SafeResourceUrl;
   RedSocial: any[] = [];
 
-
+  // Variables para el spinner
+  cargandoOverlay: Observable<boolean>;
 
   RedeSocialImagen: RedSocialImagen[] = [];
 
@@ -56,10 +60,12 @@ export class ContactoComponent implements OnInit {
     private RedSocialServicio: RedSocialServicio,
     private RedSocialImagenServicio: RedSocialImagenServicio,
     private ReporteRedSocialServicio: ReporteRedSocialServicio,
-
+    private loadingService: LoadingService,
     private sanitizer: DomSanitizer,
     private AlertaServicio: AlertaServicio
-  ) { }
+  ) { 
+    this.cargandoOverlay = this.loadingService.loading$;
+  }
 
   ngOnInit(): void {
     this.ObtenerContactanosPortada();
@@ -153,6 +159,7 @@ export class ContactoComponent implements OnInit {
       }
     });
 
+    this.loadingService.show(); // Bloquea UI
     const esEdicion = this.ContactanosPortada.CodigoContactanosPortada;
     if (esEdicion) {
       this.ServicioContactanosPortada.Editar(this.ContactanosPortada).subscribe({
@@ -160,8 +167,10 @@ export class ContactoComponent implements OnInit {
           this.MostrarTitulo = false;
           this.AlertaServicio.MostrarExito('Los datos se editaron correctamente.');
           this.ObtenerContactanosPortada();
+          this.loadingService.hide();
         },
         error: (error) => {
+          this.loadingService.hide();
           this.AlertaServicio.MostrarError(error, 'Error al editar los datos');
         }
       });
@@ -171,8 +180,10 @@ export class ContactoComponent implements OnInit {
           this.MostrarTitulo = false;
           this.AlertaServicio.MostrarExito('El registro se guardó correctamente.');
           this.ObtenerContactanosPortada();
+          this.loadingService.hide();
         },
         error: (error) => {
+          this.loadingService.hide();
           this.AlertaServicio.MostrarError(error, 'Error al guardar los datos');
         }
       });
@@ -209,6 +220,7 @@ export class ContactoComponent implements OnInit {
         const formData = new FormData();
         const CodigoContactanosPortada = (this.ContactanosPortada?.CodigoContactanosPortada ?? '').toString();
 
+        this.loadingService.show(); // Bloquea UI
         formData.append('Imagen', file);
         formData.append('CarpetaPrincipal', nombreEmpresa);
         formData.append('SubCarpeta', 'ContactanosPortada');
@@ -227,8 +239,10 @@ export class ContactoComponent implements OnInit {
 
             this.AlertaServicio.MostrarExito('Imagen subida correctamente.');
             this.ObtenerContactanosPortada();
+            this.loadingService.hide();
           },
           error: (err) => {
+            this.loadingService.hide();
             if (err?.error?.Alerta) {
               this.AlertaServicio.MostrarAlerta(err.error.Alerta, 'Atención');
             } else {
@@ -238,6 +252,7 @@ export class ContactoComponent implements OnInit {
         });
       },
       error: (err) => {
+        this.loadingService.hide();
         if (err?.error?.Alerta) {
           this.AlertaServicio.MostrarAlerta(err.error.Alerta, 'Atención');
         } else {
@@ -272,14 +287,16 @@ export class ContactoComponent implements OnInit {
       CodigoRedSocial,
       Estatus
     };
-
+    this.loadingService.show(); // Bloquea UI
     this.RedSocialServicio.Editar(datosEditar).subscribe({
       next: () => {
         // Opcional: actualizar UI, mostrar alerta, etc.
         this.AlertaServicio.MostrarExito('Estado actualizado correctamente');
         this.ObtenerRedesSociales(); // si quieres recargar
+        this.loadingService.hide();
       },
       error: (err) => {
+        this.loadingService.hide();
         this.AlertaServicio.MostrarError(err, 'Error al actualizar el estado');
       }
     });
@@ -295,13 +312,16 @@ export class ContactoComponent implements OnInit {
 
     delete redEditada.UrlImagen;
 
+    this.loadingService.show(); // Bloquea UI
     this.RedSocialServicio.Editar(redEditada).subscribe({
       next: () => {
         this.AlertaServicio.MostrarExito('Registro actualizado correctamente.');
         this.MostrarListado[index] = false;
         this.ObtenerRedesSociales();
+        this.loadingService.hide();
       },
       error: (err) => {
+        this.loadingService.hide();
         this.AlertaServicio.MostrarError(err, 'Hubo un error al guardar los cambios');
       }
     });
@@ -404,6 +424,7 @@ export class ContactoComponent implements OnInit {
         const CodigoRedSocial = red.CodigoRedSocial?.toString() || '';
         const CodigoRedSocialImagen = red?.Imagenes?.[0]?.CodigoRedSocialImagen?.toString() || '';
 
+        this.loadingService.show(); // Bloquea UI
         const formData = new FormData();
         formData.append('Imagen', file);
         formData.append('CarpetaPrincipal', this.NombreEmpresa);
@@ -442,14 +463,17 @@ export class ContactoComponent implements OnInit {
                   this.ObtenerRedesSociales();
                   this.imagenTemporalArchivo = null;
                   this.ImagenTemporal = '';
+                  this.loadingService.hide();
                 },
                 error: (err) => {
+                  this.loadingService.hide();
                   console.error('Error al actualizar RedSocialImagen:', err);
                 }
               });
             }
           },
           error: (err) => {
+            this.loadingService.hide();
             console.error('Error al subir la imagen:', err);
             if (err?.error?.Alerta) {
               this.AlertaServicio.MostrarAlerta(err.error.Alerta, 'Atención');
@@ -460,6 +484,7 @@ export class ContactoComponent implements OnInit {
         });
       },
       error: (err) => {
+        this.loadingService.hide();
         console.error('Error al obtener la empresa:', err);
         if (err?.error?.Alerta) {
           this.AlertaServicio.MostrarAlerta(err.error.Alerta, 'Atención');
@@ -483,12 +508,15 @@ export class ContactoComponent implements OnInit {
       'Cancelar'
     ).then(confirmado => {
       if (confirmado) {
+        this.loadingService.show(); // Bloquea UI
         this.RedSocialServicio.Eliminar(codigo).subscribe({
           next: () => {
             this.RedSocial.splice(index, 1);
             this.AlertaServicio.MostrarExito('Registro eliminada correctamente.');
+            this.loadingService.hide();
           },
           error: (err) => {
+            this.loadingService.hide();
             this.AlertaServicio.MostrarError(err, 'Error al eliminar');
           }
         });
